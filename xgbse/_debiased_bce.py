@@ -155,6 +155,7 @@ class XGBSEDebiasedBCE(XGBSEBaseEstimator):
         self,
         X,
         y,
+        bst=None,
         num_boost_round=1000,
         validation_data=None,
         early_stopping_rounds=None,
@@ -173,6 +174,8 @@ class XGBSEDebiasedBCE(XGBSEBaseEstimator):
 
             y (structured array(numpy.bool_, numpy.number)): Binary event indicator as first field,
                 and time of event or time of censoring as second field.
+
+            bst (xgboost.Booster, None): Pretrained XGBoost model to be used to produce leaf indices.
 
             num_boost_round (Int): Number of boosting iterations.
 
@@ -217,14 +220,17 @@ class XGBSEDebiasedBCE(XGBSEBaseEstimator):
             evals = [(dvalid, "validation")]
 
         # training XGB
-        self.bst = xgb.train(
-            self.xgb_params,
-            dtrain,
-            num_boost_round=num_boost_round,
-            early_stopping_rounds=early_stopping_rounds,
-            evals=evals,
-            verbose_eval=verbose_eval,
-        )
+        if bst is None:
+            self.bst = xgb.train(
+                self.xgb_params,
+                dtrain,
+                num_boost_round=num_boost_round,
+                early_stopping_rounds=early_stopping_rounds,
+                evals=evals,
+                verbose_eval=verbose_eval,
+            )
+        else:
+            self.bst = bst
         self.feature_importances_ = self.bst.get_score()
         # predicting and encoding leaves
         self.encoder = OneHotEncoder()
